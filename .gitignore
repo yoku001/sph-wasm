@@ -1,0 +1,6 @@
+# gitignore
+node_modules
+.eslintrc.json
+
+# Only apps should have lockfiles
+package-lock.json
