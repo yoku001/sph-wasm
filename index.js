@@ -94,7 +94,7 @@ class Grid {
   }
 }
 
-window.onload = (function () {
+window.onload = (() => {
   let mouseX
   let mouseY
   const RANGE2 = RANGE * RANGE
@@ -107,6 +107,7 @@ window.onload = (function () {
   const stats = new Stats()
   stats.showPanel(0)
   document.body.appendChild(stats.domElement)
+
   const ctx = canvas.getContext('2d')
   ctx.font = '20px Arial'
   let particles = []
@@ -150,8 +151,6 @@ window.onload = (function () {
 
   function move () {
     count++
-    // var i;
-    // var p;
     updateGrids()
     findNeighbors()
     calcPressure()
@@ -166,6 +165,7 @@ window.onload = (function () {
     for (let i = 0; i < NUM_GRIDS; i++) {
       for (let j = 0; j < NUM_GRIDS; j++) { grids[i][j].clear() }
     }
+
     for (let i = 0; i < numParticles; i++) {
       var p = particles[i]
       p.fx = p.fy = p.density = 0
@@ -225,14 +225,16 @@ window.onload = (function () {
       n.calcForce()
     }
   }
-  return function () {
+
+  return () => {
     for (let i = 0; i < NUM_GRIDS; i++) {
       grids[i] = new Array(NUM_GRIDS)
       for (let j = 0; j < NUM_GRIDS; j++) { grids[i][j] = new Grid() }
     }
-    window.addEventListener('mousedown', function (e) { mouseX = e.layerX; mouseY = e.layerY; press = true }, false)
-    window.addEventListener('mousemove', function (e) { mouseX = e.layerX; mouseY = e.layerY }, false)
-    window.addEventListener('mouseup', function (e) { press = false }, false)
+
+    window.addEventListener('mousedown', e => { mouseX = e.layerX; mouseY = e.layerY; press = true }, false)
+    window.addEventListener('mousemove', e => { mouseX = e.layerX; mouseY = e.layerY }, false)
+    window.addEventListener('mouseup', e => { press = false }, false)
     frame()
   }
-}())
+})()
