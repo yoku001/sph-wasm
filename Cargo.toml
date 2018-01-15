@@ -1,0 +1,6 @@
+[package]
+name = "sph-wasm"
+version = "0.1.0"
+authors = ["Yoku <hoge@foo.bar>"]
+
+[dependencies]

@@ -4,3 +4,6 @@ node_modules
 
 # Only apps should have lockfiles
 package-lock.json
+
+/target/
+**/*.rs.bk
