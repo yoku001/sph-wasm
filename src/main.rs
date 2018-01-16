@@ -1,3 +1,14 @@
+#[macro_use]
+extern crate stdweb;
+
 fn main() {
-    println!("Hello, world!");
+    stdweb::initialize();
+
+    let message = "はろーわーるど";
+    js! {
+        alert( @{message} );
+        console.log( @{message} );
+    }
+
+    stdweb::event_loop();
 }
