@@ -36,16 +36,7 @@ class Particle {
 }
 
 class Neighbor {
-  constructor () {
-    this.p1 = null
-    this.p2 = null
-    this.distance = 0
-    this.nx = 0
-    this.ny = 0
-    this.weight = 0
-  }
-
-  setParticle (p1, p2) {
+  constructor (p1, p2) {
     this.p1 = p1
     this.p2 = p2
     this.nx = p1.x - p2.x
@@ -113,7 +104,6 @@ window.onload = (() => {
   let particles = []
   let numParticles = 0
   let neighbors = []
-  let numNeighbors = 0
   let count = 0
   let press = false
   let grids = []
@@ -131,9 +121,9 @@ window.onload = (() => {
   }
 
   function draw () {
-    ctx.fillText(numParticles, 10, 20)
+    ctx.fillText(particles.length, 10, 20)
 
-    for (let i = 0; i < numParticles; i++) {
+    for (let i = 0; i < particles.length; i++) {
       let p = particles[i]
       ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3)
     }
@@ -144,7 +134,7 @@ window.onload = (() => {
       for (let i = -7; i <= 8; i++) {
         let p = new Particle(mouseX + i * 8, mouseY)
         p.vy = 3
-        particles[numParticles++] = p
+        particles.push(p)
       }
     }
   }
@@ -155,9 +145,8 @@ window.onload = (() => {
     findNeighbors()
     calcPressure()
     calcForce()
-    for (let i = 0; i < numParticles; i++) {
-      let p = particles[i]
-      p.move()
+    for (let i = 0; i < particles.length; i++) {
+      particles[i].move()
     }
   }
 
@@ -166,7 +155,7 @@ window.onload = (() => {
       for (let j = 0; j < NUM_GRIDS; j++) { grids[i][j].clear() }
     }
 
-    for (let i = 0; i < numParticles; i++) {
+    for (let i = 0; i < particles.length; i++) {
       var p = particles[i]
       p.fx = p.fy = p.density = 0
       p.gx = Math.floor(p.x * INV_GRID_SIZE)
@@ -180,8 +169,8 @@ window.onload = (() => {
   }
 
   function findNeighbors () {
-    numNeighbors = 0
-    for (let i = 0; i < numParticles; i++) {
+    neighbors = []
+    for (let i = 0; i < particles.length; i++) {
       const p = particles[i]
       const xMin = p.gx !== 0
       const xMax = p.gx !== NUM_GRIDS - 1
@@ -205,14 +194,13 @@ window.onload = (() => {
       if (pi === pj) { continue }
       const distance = (pi.x - pj.x) * (pi.x - pj.x) + (pi.y - pj.y) * (pi.y - pj.y)
       if (distance < RANGE2) {
-        if (neighbors.length === numNeighbors) { neighbors[numNeighbors] = new Neighbor() }
-        neighbors[numNeighbors++].setParticle(pi, pj)
+        neighbors.push(new Neighbor(pi, pj))
       }
     }
   }
 
   function calcPressure () {
-    for (let i = 0; i < numParticles; i++) {
+    for (let i = 0; i < particles.length; i++) {
       const p = particles[i]
       if (p.density < DENSITY) { p.density = DENSITY }
       p.pressure = p.density - DENSITY
@@ -220,9 +208,8 @@ window.onload = (() => {
   }
 
   function calcForce () {
-    for (let i = 0; i < numNeighbors; i++) {
-      const n = neighbors[i]
-      n.calcForce()
+    for (let i = 0; i < neighbors.length; i++) {
+      neighbors[i].calcForce()
     }
   }
 
