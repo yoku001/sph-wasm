@@ -33,19 +33,25 @@ class Particle {
     if (this.x > 460) { this.vx += (460 - this.x) * 0.5 - this.vx * 0.5 }
     if (this.y > 460) { this.vy += (460 - this.y) * 0.5 - this.vy * 0.5 }
   }
+
+  calcForce (nx, ny, weight) {
+    const pressureWeight = this.weight * (p1.pressure + p2.pressure) / (p1.density + p2.density) * PRESSURE
+    const viscosityWeight = this.weight / (p1.density + p2.density) * VISCOSITY
+    p1.fx += this.nx * pressureWeight
+    p1.fy += this.ny * pressureWeight
+    p2.fx -= this.nx * pressureWeight
+    p2.fy -= this.ny * pressureWeight
+    const rvx = p2.vx - p1.vx
+    const rvy = p2.vy - p1.vy
+    p1.fx += rvx * viscosityWeight
+    p1.fy += rvy * viscosityWeight
+    p2.fx -= rvx * viscosityWeight
+    p2.fy -= rvy * viscosityWeight
+  }
 }
 
 class Neighbor {
-  constructor () {
-    this.p1 = null
-    this.p2 = null
-    this.distance = 0
-    this.nx = 0
-    this.ny = 0
-    this.weight = 0
-  }
-
-  setParticle (p1, p2) {
+  constructor (p1, p2) {
     this.p1 = p1
     this.p2 = p2
     this.nx = p1.x - p2.x
@@ -82,15 +88,10 @@ class Neighbor {
 class Grid {
   constructor () {
     this.particles = []
-    this.numParticles = 0
-  }
-
-  clear () {
-    this.numParticles = 0
   }
 
   add (p) {
-    this.particles[this.numParticles++] = p
+    this.particles.push(p)
   }
 }
 
@@ -113,7 +114,6 @@ window.onload = (() => {
   let particles = []
   let numParticles = 0
   let neighbors = []
-  let numNeighbors = 0
   let count = 0
   let press = false
   let grids = []
@@ -131,9 +131,9 @@ window.onload = (() => {
   }
 
   function draw () {
-    ctx.fillText(numParticles, 10, 20)
+    ctx.fillText(particles.length, 10, 20)
 
-    for (let i = 0; i < numParticles; i++) {
+    for (let i = 0; i < particles.length; i++) {
       let p = particles[i]
       ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3)
     }
@@ -144,75 +144,47 @@ window.onload = (() => {
       for (let i = -7; i <= 8; i++) {
         let p = new Particle(mouseX + i * 8, mouseY)
         p.vy = 3
-        particles[numParticles++] = p
+        particles.push(p)
       }
     }
   }
 
   function move () {
     count++
-    updateGrids()
-    findNeighbors()
+    initialize()
+    findAllNeighbors()
     calcPressure()
     calcForce()
-    for (let i = 0; i < numParticles; i++) {
-      let p = particles[i]
-      p.move()
+    for (let i = 0; i < particles.length; i++) {
+      particles[i].move()
     }
   }
 
-  function updateGrids () {
-    for (let i = 0; i < NUM_GRIDS; i++) {
-      for (let j = 0; j < NUM_GRIDS; j++) { grids[i][j].clear() }
-    }
-
-    for (let i = 0; i < numParticles; i++) {
+  function initialize () {
+    for (let i = 0; i < particles.length; i++) {
       var p = particles[i]
       p.fx = p.fy = p.density = 0
-      p.gx = Math.floor(p.x * INV_GRID_SIZE)
-      p.gy = Math.floor(p.y * INV_GRID_SIZE)
-      if (p.gx < 0) { p.gx = 0 }
-      if (p.gy < 0) { p.gy = 0 }
-      if (p.gx > NUM_GRIDS - 1) { p.gx = NUM_GRIDS - 1 }
-      if (p.gy > NUM_GRIDS - 1) { p.gy = NUM_GRIDS - 1 }
-      grids[p.gx][p.gy].add(p)
     }
   }
 
-  function findNeighbors () {
-    numNeighbors = 0
-    for (let i = 0; i < numParticles; i++) {
-      const p = particles[i]
-      const xMin = p.gx !== 0
-      const xMax = p.gx !== NUM_GRIDS - 1
-      const yMin = p.gy !== 0
-      const yMax = p.gy !== NUM_GRIDS - 1
-      findNeighborsInGrid(p, grids[p.gx][p.gy])
-      if (xMin) findNeighborsInGrid(p, grids[p.gx - 1][p.gy])
-      if (xMax) findNeighborsInGrid(p, grids[p.gx + 1][p.gy])
-      if (yMin) findNeighborsInGrid(p, grids[p.gx][p.gy - 1])
-      if (yMax) findNeighborsInGrid(p, grids[p.gx][p.gy + 1])
-      if (xMin && yMin) findNeighborsInGrid(p, grids[p.gx - 1][p.gy - 1])
-      if (xMin && yMax) findNeighborsInGrid(p, grids[p.gx - 1][p.gy + 1])
-      if (xMax && yMin) findNeighborsInGrid(p, grids[p.gx + 1][p.gy - 1])
-      if (xMax && yMax) findNeighborsInGrid(p, grids[p.gx + 1][p.gy + 1])
-    }
-  }
-
-  function findNeighborsInGrid (pi, g) {
-    for (let j = 0; j < g.numParticles; j++) {
-      const pj = g.particles[j]
-      if (pi === pj) { continue }
-      const distance = (pi.x - pj.x) * (pi.x - pj.x) + (pi.y - pj.y) * (pi.y - pj.y)
-      if (distance < RANGE2) {
-        if (neighbors.length === numNeighbors) { neighbors[numNeighbors] = new Neighbor() }
-        neighbors[numNeighbors++].setParticle(pi, pj)
+  function findAllNeighbors () {
+    neighbors = []
+    const len = particles.length
+    for (let i = 0; i < len; i++) {
+      const pi = particles[i]
+      for (let j = 0; j < len; j++) {
+        const pj = particles[j]
+        if (pi === pj) { continue }
+        const distance = (pi.x - pj.x) * (pi.x - pj.x) + (pi.y - pj.y) * (pi.y - pj.y)
+        if (distance < RANGE2) {
+          neighbors.push(new Neighbor(pi, pj))
+        }
       }
     }
   }
 
   function calcPressure () {
-    for (let i = 0; i < numParticles; i++) {
+    for (let i = 0; i < particles.length; i++) {
       const p = particles[i]
       if (p.density < DENSITY) { p.density = DENSITY }
       p.pressure = p.density - DENSITY
@@ -220,9 +192,8 @@ window.onload = (() => {
   }
 
   function calcForce () {
-    for (let i = 0; i < numNeighbors; i++) {
-      const n = neighbors[i]
-      n.calcForce()
+    for (let i = 0; i < neighbors.length; i++) {
+      neighbors[i].calcForce()
     }
   }
 
