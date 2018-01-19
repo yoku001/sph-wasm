@@ -9,32 +9,18 @@ extern crate serde;
 
 const GRAVITY: f64 = 0.025;
 const RANGE: f64 = 10.0;
+const RANGE2: f64 = RANGE * RANGE;
 const PRESSURE: f64 = 1.0;
 const VISCOSITY: f64 = 0.05;
-
+const DENSITY: f64 = 0.2;
 const N: usize = 100;
-const NUM_GRIDS: usize = 46;
-const INV_GRID_SIZE: f64  = 1.0 / (465.0 / NUM_GRIDS as f64);
 
 fn main() {
     stdweb::initialize();
 
-    // 粒子初期化
-    let mut particles: Vec<Particle> = Vec::new();
-    for i in 0..N {
-        particles.push(Default::default());
-        particles[i].id = i;
-        particles[i].x = 100.0 + (i % 10) as f64 * 8.0;
-        particles[i].y = 100.0 + (i / 10) as f64 * 8.0;
-    }
-
-    // グリッド初期化
-    let mut grids: Vec<Vec<Grid>> = Vec::new();
-    for i in 0..NUM_GRIDS {
-        grids.push(Vec::new());
-        for _ in 0..NUM_GRIDS { 
-            grids[i].push(Grid { particles: Vec::new() });
-        }
+    let mut engine = SphEngine::new();
+    for _ in 0..100 {
+        engine.update();
     }
 
     js! {
@@ -50,78 +36,22 @@ fn main() {
             }
         }
 
-        console.log(@{clear_grid(&mut grids)});
-        console.log(@{update_grids(&mut grids, &mut particles)})
 
-        // function frame(e) {
-        //     console.log( @{p} );
-        //     window.requestAnimationFrame(frame);
-        // }
+        function frame() {
 
-        // frame();
+            window.requestAnimationFrame(frame);
+        }
+
+        frame();
     }
 
     stdweb::event_loop();
 }
 
-fn update() -> i32 {
-    100
-}
-
-fn clear_grid (grids: &mut Vec<Vec<Grid>>) {
-    for gi in grids {
-        for gj in gi {
-            gj.particles.clear();
-        }
-    }
-}
-
-fn update_grids (grids: &mut Vec<Vec<Grid>>, pt: &mut Vec<Particle>) {
-    for gi in &mut (*grids) {
-        for gj in gi {
-            gj.particles.clear();
-        }
-    }
-
-    for p in pt {
-        p.fx = 0.0;
-        p.fy = 0.0;
-        p.density = 0.0;
-
-        p.gx = (p.x * INV_GRID_SIZE).floor() as i32;
-        p.gy = (p.y * INV_GRID_SIZE).floor() as i32;
-
-        if p.gx < 0 { p.gx = 0 }
-        if p.gy < 0 { p.gy = 0 }
-        if p.gx > (NUM_GRIDS as i32 - 1) { p.gx = NUM_GRIDS as i32 - 1 }
-        if p.gx > (NUM_GRIDS as i32 - 1) { p.gy = NUM_GRIDS as i32 - 1 }
-
-        grids[p.gx as usize][p.gy as usize].particles.push(p.id);
-    }
-}
-
-// fn find_neighbors_in_grid (grid: &Grid) {
-//     for p in grid.particles {
-        
-//     }
-//     // for (let j = 0; j < g.numParticles; j++) {
-//     //   const pj = g.particles[j]
-//     //   if (pi === pj) { continue }
-//     //   const distance = (pi.x - pj.x) * (pi.x - pj.x) + (pi.y - pj.y) * (pi.y - pj.y)
-//     //   if (distance < RANGE2) {
-//     //     if (neighbors.length === numNeighbors) { neighbors[numNeighbors] = new Neighbor() }
-//     //     neighbors[numNeighbors++].setParticle(pi, pj)
-//     //   }
-//     // }
-// }
-
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct Particle {
-    id: usize,
     x: f64,
     y: f64,
-    gx: i32,
-    gy: i32,
     vx: f64,
     vy: f64,
     fx: f64,
@@ -148,50 +78,125 @@ impl Particle {
 }
 
 #[derive(Debug)]
-struct Neighbor {
-    i1: usize,
-    i2: usize,
-    distance: f64,
+struct Neighbor<'a> {
+    p1: &'a mut Particle,
+    p2: &'a mut Particle,
     nx: f64,
     ny: f64,
+    distance: f64,
     weight: f64,
 }
 
-impl Neighbor {
-    fn set(&mut self, i1: usize, i2: usize, pt: &mut Vec<Particle>) {
-        self.i1 = i1;
-        self.i2 = i2;
+impl<'a> Neighbor<'a> {
+    fn new(p1: &'a mut Particle, p2: &'a mut Particle) -> Neighbor<'a> {
+        let mut n = Neighbor {
+            nx: p1.x - p2.x,
+            ny: p1.y - p2.y,
+            p1: p1,
+            p2: p2,
+            distance: 0.0,
+            weight: 0.0,
+        };
 
-        self.nx = pt[i1].x - pt[i2].x;
-        self.ny = pt[i1].y - pt[i2].y;
-        self.distance = (self.nx * self.nx + self.ny * self.ny).sqrt();
-        self.weight = 1.0 - self.distance / RANGE;
+        n.distance = (n.nx * n.nx + n.ny * n.ny).sqrt();
+        n.weight = 1.0 - n.distance / RANGE;
 
-        let mut temp = self.weight * self.weight * self.weight;
-        pt[i1].density += temp;
-        pt[i2].density += temp;
-        temp = 1.0 / self.distance;
-        self.nx *= temp;
-        self.ny *= temp;
+        let mut temp = n.weight * n.weight * n.weight;
+        n.p1.density += temp;
+        n.p2.density += temp;
+        temp = 1.0 / n.distance;
+        n.nx *= temp;
+        n.ny *= temp;
+
+        n
     }
 
-    fn calc_force(&mut self, pt: &mut Vec<Particle>) {
-        let pressure_weight = self.weight * (pt[self.i1].pressure + pt[self.i2].pressure) / (pt[self.i1].density + pt[self.i2].density) * PRESSURE;
-        let viscosity_weight = self.weight / (pt[self.i1].density + pt[self.i2].density) * VISCOSITY;
-        pt[self.i1].fx += self.nx * pressure_weight;
-        pt[self.i1].fy += self.ny * pressure_weight;
-        pt[self.i2].fx -= self.nx * pressure_weight;
-        pt[self.i2].fy -= self.ny * pressure_weight;
-        let rvx = pt[self.i2].vx - pt[self.i1].vx;
-        let rvy = pt[self.i2].vy - pt[self.i1].vy;
-        pt[self.i1].fx += rvx * viscosity_weight;
-        pt[self.i1].fy += rvy * viscosity_weight;
-        pt[self.i2].fx -= rvx * viscosity_weight;
-        pt[self.i2].fy -= rvy * viscosity_weight;
+    fn calc_force(&mut self) {
+        let pressure_weight = self.weight * (self.p1.pressure + self.p2.pressure) / (self.p1.density + self.p2.density) * PRESSURE;
+        let viscosity_weight = self.weight / (self.p1.density + self.p2.density) * VISCOSITY;
+        self.p1.fx += self.nx * pressure_weight;
+        self.p1.fy += self.ny * pressure_weight;
+        self.p2.fx -= self.nx * pressure_weight;
+        self.p2.fy -= self.ny * pressure_weight;
+        let rvx = self.p2.vx - self.p1.vx;
+        let rvy = self.p2.vy - self.p1.vy;
+        self.p1.fx += rvx * viscosity_weight;
+        self.p1.fy += rvy * viscosity_weight;
+        self.p2.fx -= rvx * viscosity_weight;
+        self.p2.fy -= rvy * viscosity_weight;
     }
 }
 
-#[derive(Debug)]
-struct Grid {
-    particles: Vec<usize>,
+struct SphEngine<'a> {
+    particles: Vec<Particle>,
+    neighbors: Vec<Neighbor<'a>>
+}
+
+impl<'a> SphEngine<'a> {
+    // コンストラクタ
+    fn new () -> SphEngine<'a> {
+        // 粒子初期化
+        let mut particles: Vec<Particle> = Vec::new();
+        for i in 0..N {
+            particles.push(Default::default());
+            particles[i].x = 100.0 + (i % 10) as f64 * 8.0;
+            particles[i].y = 100.0 + (i / 10) as f64 * 8.0;
+        }
+
+        SphEngine {
+            particles: particles,
+            neighbors: Vec::new()
+        }
+    }
+
+    // フレーム初期化
+    fn initialize (&mut self) {
+        for p in &mut self.particles {
+            p.fx = 0.0;
+            p.fy = 0.0;
+            p.density = 0.0;
+        }
+
+        self.neighbors.clear();
+    }
+
+    // 近傍粒子探索
+    fn find_neighbors (&mut self) {
+        let pt = self.particles.as_mut_ptr();
+        let len = self.particles.len();
+        unsafe {
+            for i in 0..len {
+                for j in 0..len {
+                    if i == j { continue }
+                    let pi = &mut *pt.offset(i as isize);
+                    let pj = &mut *pt.offset(j as isize);
+                    let distance = (pi.x - pj.x) * (pi.x - pj.x) + (pi.y - pj.y) * (pi.y - pj.y);
+                    if distance < RANGE2 {
+                        self.neighbors.push(Neighbor::new(pi, pj));
+                    }
+                }
+            }
+        }
+    }
+
+    // 圧力計算
+    fn calc_force (&mut self) {
+        for p in &mut self.particles {
+            if p.density < DENSITY { p.density = DENSITY; }
+            p.pressure = p.density - DENSITY;
+        }
+
+        for neighbor in &mut self.neighbors {
+            neighbor.calc_force();
+        }
+    }
+
+    fn update (&mut self) {
+        self.initialize();
+        self.find_neighbors();
+        self.calc_force();
+        for p in &mut self.particles {
+            p.update();
+        }
+    }
 }
