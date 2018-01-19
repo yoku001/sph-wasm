@@ -19,6 +19,9 @@ fn main() {
     stdweb::initialize();
 
     let mut engine = SphEngine::new();
+    for _ in 0..100 {
+        engine.update();
+    }
 
     js! {
         const canvas = document.getElementById("canvas");
@@ -33,13 +36,9 @@ fn main() {
             }
         }
 
+
         function frame() {
-            console.log("ok");
-            @{ engine.initialize() };
-            @{ engine.find_neighbors() };
-            @{ engine.calc_force() };
-            @{ engine.update() };
-            draw(@{engine.particles});
+
             window.requestAnimationFrame(frame);
         }
 
@@ -51,11 +50,8 @@ fn main() {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct Particle {
-    id: usize,
     x: f64,
     y: f64,
-    gx: usize,
-    gy: usize,
     vx: f64,
     vy: f64,
     fx: f64,
@@ -143,7 +139,6 @@ impl<'a> SphEngine<'a> {
         let mut particles: Vec<Particle> = Vec::new();
         for i in 0..N {
             particles.push(Default::default());
-            particles[i].id = i;
             particles[i].x = 100.0 + (i % 10) as f64 * 8.0;
             particles[i].y = 100.0 + (i / 10) as f64 * 8.0;
         }
@@ -197,6 +192,9 @@ impl<'a> SphEngine<'a> {
     }
 
     fn update (&mut self) {
+        self.initialize();
+        self.find_neighbors();
+        self.calc_force();
         for p in &mut self.particles {
             p.update();
         }
