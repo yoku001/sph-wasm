@@ -11,8 +11,6 @@ class Particle {
   constructor (x, y) {
     this.x = x
     this.y = y
-    this.gx = 0
-    this.gy = 0
     this.vx = 0
     this.vy = 0
     this.fx = 0
@@ -85,23 +83,11 @@ class Neighbor {
   }
 }
 
-class Grid {
-  constructor () {
-    this.particles = []
-  }
-
-  add (p) {
-    this.particles.push(p)
-  }
-}
-
 window.onload = (() => {
   let mouseX
   let mouseY
   const RANGE2 = RANGE * RANGE
   const DENSITY = 0.2
-  const NUM_GRIDS = 46
-  const INV_GRID_SIZE = 1.0 / (465.0 / NUM_GRIDS)
   const canvas = document.getElementById('canvas')
 
   // Stats
@@ -116,7 +102,6 @@ window.onload = (() => {
   let neighbors = []
   let count = 0
   let press = false
-  let grids = []
 
   function frame (e) {
     stats.begin()
@@ -198,11 +183,6 @@ window.onload = (() => {
   }
 
   return () => {
-    for (let i = 0; i < NUM_GRIDS; i++) {
-      grids[i] = new Array(NUM_GRIDS)
-      for (let j = 0; j < NUM_GRIDS; j++) { grids[i][j] = new Grid() }
-    }
-
     window.addEventListener('mousedown', e => { mouseX = e.layerX; mouseY = e.layerY; press = true }, false)
     window.addEventListener('mousemove', e => { mouseX = e.layerX; mouseY = e.layerY }, false)
     window.addEventListener('mouseup', e => { press = false }, false)
