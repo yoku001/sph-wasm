@@ -1,102 +1,108 @@
 <html>
-<div oncontextmenu="return false;" style = "width: 100%;text-align:center;">
-<canvas id="canvas" width="1000px" height="600px" style="border: solid 1px black; display: inline;"></canvas>
+  <div oncontextmenu="return false;" style="width: 100%;text-align:center;">
+    <canvas
+      id="canvas"
+      width="1000px"
+      height="600px"
+      style="border: solid 1px black; display: inline;"
+    ></canvas>
 
-<script src="Vector2.js"></script>
-<script src="Core.js"></script>
-<script src="Particle.js"></script>
-<script src="Grid.js"></script>
-<script src="Simulation.js"></script>
-<script src="Kernels.js"></script>
-</div>
+    <script src="Vector2.js"></script>
+    <script src="Core.js"></script>
+    <script src="Particle.js"></script>
+    <script src="Grid.js"></script>
+    <script src="Simulation.js"></script>
+    <script src="Kernels.js"></script>
+  </div>
 
-<script>
+  <script>
+    let core;
+    let dimensions;
+    let canvas;
+    let mousePosWindow;
+    let mousePos;
+    let mouseDownLeft;
+    let mouseDownRight;
+    let dt = 1 / 40.0;
 
-	let core;
-	let dimensions;
-	let canvas;
-	let mousePosWindow;
-	let mousePos;
-	let mouseDownLeft;
-	let mouseDownRight;
-	let dt = 1/40.0;
-	
-	function getMousePos(canvas, evt) {
-		var rect = canvas.getBoundingClientRect();
-		return {
-			x: evt.clientX - rect.left,
-			y: evt.clientY - rect.top
-		};
-	}	
-	
-	window.onload = function(){
-		mousePosWindow = new Vector2(0,0);
-		canvas = document.getElementById("canvas");
-		body = document.body;
-		canvasContext = canvas.getContext("2d");
-		canvasContext.fillStyle = "white";
-		canvasContext.fillRect(0,0,canvas.width,canvas.height);	
+    function getMousePos(canvas, evt) {
+      var rect = canvas.getBoundingClientRect();
+      return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+      };
+    }
 
-		canvas.addEventListener('mousemove', function(evt) {
-			mouse = getMousePos(canvas, evt);
-			mousePos = new Vector2(mouse.x,mouse.y);
-		}, false);
-		
+    window.onload = function() {
+      mousePosWindow = new Vector2(0, 0);
+      canvas = document.getElementById("canvas");
+      body = document.body;
+      canvasContext = canvas.getContext("2d");
+      canvasContext.fillStyle = "white";
+      canvasContext.fillRect(0, 0, canvas.width, canvas.height);
 
-		body.addEventListener('mousemove',function(evt){
-			mousePosWindow = new Vector2(evt.clientX,evt.clientY);
-		},false);
-	
-		canvas.onmousedown = function(e){	
-			if(e.button == 0)
-			mouseDownLeft = true;
-			
-			if(e.button == 2)
-			mouseDownRight = true;
-		}	
-		
-		canvas.onmouseup = function(e){
-			if(e.button == 0)
-			mouseDownLeft = false;
-			
-			if(e.button == 2)
-			mouseDownRight = false;
-		}				
-		mousePos = new Vector2(0,0);
-		dimensions = new Vector2(canvas.width,canvas.height);		
-		core = new Core(canvas.width,canvas.height);
-		window.addEventListener('keydown',KeyboardEvent,false);
-		requestAnimationFrame(MainLoop)/100;
-	}
-	
+      canvas.addEventListener(
+        "mousemove",
+        function(evt) {
+          mouse = getMousePos(canvas, evt);
+          mousePos = new Vector2(mouse.x, mouse.y);
+        },
+        false
+      );
 
-	
-	let lastTime;
-	
-	function KeyboardEvent(e){
-		core.KeyboardInput(e.keyCode);
-	}
-	
-	
-	function MainLoop(timestamp){
-		Clear();	
-		core.Update(dt);
-		core.Draw(canvasContext);		
-		requestAnimationFrame(MainLoop);
-	}
-	
-	function isInCanvas(){
-		if(mousePosWindow.x > 0 && mousePosWindow.y > 0 && mousePosWindow.x < dimensions.x && mousePosWindow.y < dimensions.y) 
-			
-			return true;
-		else return false;
-	}
-	
-	function Clear(){
-		canvasContext.fillStyle = "white";
-		canvasContext.fillRect(0,0,canvas.width,canvas.height);	
-	}
-	
+      body.addEventListener(
+        "mousemove",
+        function(evt) {
+          mousePosWindow = new Vector2(evt.clientX, evt.clientY);
+        },
+        false
+      );
 
-</script>
+      canvas.onmousedown = function(e) {
+        if (e.button == 0) mouseDownLeft = true;
+
+        if (e.button == 2) mouseDownRight = true;
+      };
+
+      canvas.onmouseup = function(e) {
+        if (e.button == 0) mouseDownLeft = false;
+
+        if (e.button == 2) mouseDownRight = false;
+      };
+      mousePos = new Vector2(0, 0);
+      dimensions = new Vector2(canvas.width, canvas.height);
+      core = new Core(canvas.width, canvas.height);
+      window.addEventListener("keydown", KeyboardEvent, false);
+      requestAnimationFrame(MainLoop) / 100;
+    };
+
+    let lastTime;
+
+    function KeyboardEvent(e) {
+      core.KeyboardInput(e.keyCode);
+    }
+
+    function MainLoop(timestamp) {
+      Clear();
+      core.Update(dt);
+      core.Draw(canvasContext);
+      requestAnimationFrame(MainLoop);
+    }
+
+    function isInCanvas() {
+      if (
+        mousePosWindow.x > 0 &&
+        mousePosWindow.y > 0 &&
+        mousePosWindow.x < dimensions.x &&
+        mousePosWindow.y < dimensions.y
+      )
+        return true;
+      else return false;
+    }
+
+    function Clear() {
+      canvasContext.fillStyle = "white";
+      canvasContext.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  </script>
 </html>
