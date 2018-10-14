@@ -39,25 +39,6 @@ class Particle {
       this.vy += (460 - this.y) * 0.5 - this.vy * 0.5;
     }
   }
-
-  calcForce(nx, ny, weight) {
-    const pressureWeight =
-      ((this.weight * (p1.pressure + p2.pressure)) /
-        (p1.density + p2.density)) *
-      PRESSURE;
-    const viscosityWeight =
-      (this.weight / (p1.density + p2.density)) * VISCOSITY;
-    p1.fx += this.nx * pressureWeight;
-    p1.fy += this.ny * pressureWeight;
-    p2.fx -= this.nx * pressureWeight;
-    p2.fy -= this.ny * pressureWeight;
-    const rvx = p2.vx - p1.vx;
-    const rvy = p2.vy - p1.vy;
-    p1.fx += rvx * viscosityWeight;
-    p1.fy += rvy * viscosityWeight;
-    p2.fx -= rvx * viscosityWeight;
-    p2.fy -= rvy * viscosityWeight;
-  }
 }
 
 class Neighbor {
@@ -114,7 +95,6 @@ window.onload = (() => {
   const ctx = canvas.getContext("2d");
   ctx.font = "20px Arial";
   let particles = [];
-  let numParticles = 0;
   let neighbors = [];
   let count = 0;
   let press = false;

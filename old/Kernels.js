@@ -16,7 +16,6 @@ class Kernels {
     if (length2 > this.H_SQU || length2 <= 0) {
       return 0;
     } else {
-      let length = Math.sqrt(length2);
       return this.POLY6_TERM * Math.pow(this.H * this.H - length2, 3);
     }
   }
