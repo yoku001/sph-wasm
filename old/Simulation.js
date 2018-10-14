@@ -8,7 +8,7 @@ class Simulation {
     this.DRAWING_RADIUS = 2;
     this.SOLVER_ITERATIONS = 3;
     this.GRAVITY = new Vector2(0, 1000);
-    this.MASS = 1.0;
+    this.MASS = 1.05;
     this.REST_DENSITY = 0.00019;
 
     this.K = 1;
